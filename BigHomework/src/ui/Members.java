@@ -14,6 +14,7 @@ public class Members {
     private int Level;
     private double Discount = 0.8;
     private Inventory inventory;
+    private Boolean flag;
     // 商品 ID 映射到 商品对象和数量
     private Map<String, Map.Entry<Product, Integer>> cartMap = new HashMap<>();
 
@@ -85,7 +86,11 @@ public class Members {
     public  void setpassword(String password) {
         this.password = Integer.parseInt(password);
     }
-    public Inventory getInventory() {
-        return inventory;
+
+    public void setVerify(boolean flag) {
+        this.flag = flag;
+    }
+    public boolean getVerify() {
+        return flag;
     }
 }

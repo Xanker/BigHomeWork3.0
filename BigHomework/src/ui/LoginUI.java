@@ -36,6 +36,7 @@ public class LoginUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 Members members = new Members();
+                members.setVerify(false);
                 ShoppingCartUI shoppingCartUI = null;
                 try {
                     shoppingCartUI = new ShoppingCartUI(members);
@@ -63,6 +64,7 @@ public class LoginUI extends JFrame {
                 else if (check()) {
                     JOptionPane.showMessageDialog(new JOptionPane(), "你将以顾客身份登录系统");
                     Members members = new Members();
+                    members.setVerify(true);
                     ShoppingCartUI shoppingCartUI = null;
                     try {
                         shoppingCartUI = new ShoppingCartUI(members);

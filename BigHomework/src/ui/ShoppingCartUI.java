@@ -174,9 +174,14 @@ public class ShoppingCartUI extends JFrame {
         tableTitle.setForeground(new Color(70, 70, 70));
         tabPanel.add(tableTitle, BorderLayout.NORTH);
 
-        // 创建水果表格
-        String[] columns = {"ID", "名称", "产地", "收获日期", "单价", "库存","类型"};
-        cartModel = addToCart(columns);
+        // 创建表格
+        String[] cartColumns = {"ID", "名称", "单价", "数量", "小计"};
+        cartModel = new DefaultTableModel(cartColumns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 3; // 仅允许修改数量列
+            }
+        };
 
         cartTable = createStyledTable(cartModel);
         JScrollPane scrollPane = new JScrollPane(cartTable);
@@ -197,32 +202,95 @@ public class ShoppingCartUI extends JFrame {
 
         });
 
+        JButton deleteBtn = createStyledButton("删除", BUTTON_GREEN, Color.WHITE);
+        deleteBtn.addActionListener(e -> {
+
+        });
+
+        JLabel totalLabel = new JLabel("总价：0.00");
+        totalLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
+
+// 添加监听器动态计算总价
+        cartModel.addTableModelListener(e -> {
+            double total = 0;
+            for (int i = 0; i < cartModel.getRowCount(); i++) {
+                total += Double.parseDouble(cartModel.getValueAt(i, 4).toString());
+            }
+            totalLabel.setText("总价：" + String.format("%.2f", total));
+        });
+
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        infoPanel.add(totalLabel);
+        tabPanel.add(infoPanel, BorderLayout.SOUTH);
 
 
         buttonPanel.add(editBtn);
+        buttonPanel.add(deleteBtn);
         //buttonPanel.add(refreshBtn);
 
         tabPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        tabbedPane.addTab("商品", tabPanel);
+        tabbedPane.addTab("购物车", tabPanel);
     }
 
     private void showAddDialog(JTable table) {
-        Object id = table.getValueAt(table.getSelectedRow(),0);
-        int num = Integer.parseInt(id.toString());
-
-        Object Type = table.getValueAt(table.getSelectedRow(),6);
-        String type = String.valueOf(Type);
-
-        switch (type) {
-            case"Fruit":
-                break;
-            case "Herb":
-                break;
-            case "Wood":
-                break;
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "请先选择商品", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
+        // 获取选中商品数据
+        Object id = table.getValueAt(selectedRow, 0);
+        Object name = table.getValueAt(selectedRow, 1);
+        Object price = table.getValueAt(selectedRow, 4);
+        Object stock = table.getValueAt(selectedRow, 5);
+
+        // 数量选择对话框
+        String input = JOptionPane.showInputDialog(this, "请输入购买数量：", "添加商品", JOptionPane.PLAIN_MESSAGE);
+        if (input == null || input.trim().isEmpty()) return;
+
+        try {
+            int quantity = Integer.parseInt(input);
+            int availableStock = (stock != null) ? Integer.parseInt(stock.toString()) : 0;
+
+            // 验证库存
+            if (quantity <= 0) {
+                JOptionPane.showMessageDialog(this, "数量必须大于0", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (quantity > availableStock) {
+                JOptionPane.showMessageDialog(this, "库存不足！最大可用数量：" + availableStock, "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 检查是否已存在购物车中
+            boolean exists = false;
+            for (int i = 0; i < cartModel.getRowCount(); i++) {
+                if (cartModel.getValueAt(i, 0).equals(id)) {
+                    int oldQty = (int) cartModel.getValueAt(i, 3);
+                    cartModel.setValueAt(oldQty + quantity, i, 3); // 更新数量
+                    double newSubtotal = (oldQty + quantity) * Double.parseDouble(price.toString());
+                    cartModel.setValueAt(newSubtotal, i, 4); // 更新小计
+                    exists = true;
+                    break;
+                }
+            }
+
+            // 新增商品条目
+            if (!exists) {
+                double subtotal = quantity * Double.parseDouble(price.toString());
+                cartModel.addRow(new Object[]{
+                        id, name, price, quantity, subtotal
+                });
+            }
+
+            // 更新库存显示（可选）
+            table.setValueAt(availableStock - quantity, selectedRow, 5);
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "请输入有效数字", "错误", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JTable createStyledTable(DefaultTableModel model) {
